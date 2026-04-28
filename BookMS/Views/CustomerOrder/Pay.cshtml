@@ -1,0 +1,192 @@
+@model BookMS.Models.Order
+@using BookMS.Models
+@{ ViewData["Title"] = "Payment"; Layout = "_LayoutCustomer"; }
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <h4 class="fw-bold mb-4">
+                <i class="bi bi-credit-card me-2 text-primary"></i>
+                @(Model.PaymentMethod == PaymentMethod.Card ? "Card Payment" : "QR Code Payment")
+            </h4>
+
+            <!-- Order Summary Card -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Order</span>
+                        <span class="fw-bold">@Model.OrderNumber</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Total Amount</span>
+                        <span class="fw-bold fs-5 text-primary">$@Model.TotalAmount.ToString("N2")</span>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.PaymentMethod == PaymentMethod.Card)
+            {
+                <!-- Card Payment UI -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-4"><i class="bi bi-credit-card me-2"></i>Enter Card Details</h6>
+
+                        <!-- Visual Card -->
+                        <div class="mb-4 p-4 rounded-3 text-white position-relative overflow-hidden"
+                             style="background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); min-height: 160px;">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <i class="bi bi-credit-card-2-front fs-2 opacity-75"></i>
+                                <span class="fw-bold opacity-75" id="cardNetworkLabel">VISA</span>
+                            </div>
+                            <div class="fs-5 fw-bold letter-spacing-2 mb-3" id="cardPreview">•••• •••• •••• ••••</div>
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div style="font-size:0.7rem;opacity:0.7">CARD HOLDER</div>
+                                    <div class="fw-semibold" id="holderPreview">YOUR NAME</div>
+                                </div>
+                                <div class="text-end">
+                                    <div style="font-size:0.7rem;opacity:0.7">EXPIRES</div>
+                                    <div class="fw-semibold" id="expiryPreview">MM/YY</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form asp-action="ConfirmPayment" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Card Number</label>
+                                <input type="text" name="cardNumber" id="cardNumberInput" class="form-control"
+                                       placeholder="1234 5678 9012 3456" maxlength="19" required
+                                       inputmode="numeric" autocomplete="cc-number" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Card Holder Name</label>
+                                <input type="text" name="cardHolder" id="cardHolderInput" class="form-control"
+                                       placeholder="Name on card" required autocomplete="cc-name" />
+                            </div>
+                            <div class="row g-3 mb-4">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Expiry Date</label>
+                                    <input type="text" id="expiryInput" class="form-control"
+                                           placeholder="MM/YY" maxlength="5" required
+                                           inputmode="numeric" autocomplete="cc-exp" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">CVV</label>
+                                    <input type="password" class="form-control"
+                                           placeholder="•••" maxlength="4" required
+                                           inputmode="numeric" autocomplete="cc-csc" />
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold fs-6">
+                                <i class="bi bi-lock-fill me-2"></i>Pay $@Model.TotalAmount.ToString("N2")
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- QR Code Payment UI -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-body p-4 text-center">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-qr-code me-2"></i>Scan to Pay</h6>
+                        <p class="text-muted mb-4" style="font-size:0.875rem">
+                            Scan the QR code below using your banking app (ABA, ACLEDA, Wing, etc.)
+                        </p>
+
+                        <!-- Real Scannable QR Code -->
+                        <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-3 border"
+                             style="width:220px;height:220px;background:#fff;padding:10px">
+                            <div id="qrcode"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <span class="badge bg-primary px-3 py-2" style="font-size:0.9rem">
+                                $@Model.TotalAmount.ToString("N2")
+                            </span>
+                        </div>
+                        <p class="text-muted mb-4" style="font-size:0.8rem">
+                            <i class="bi bi-info-circle me-1"></i>
+                            QR Code expires in <strong id="countdown">10:00</strong>
+                        </p>
+
+                        <div class="alert alert-warning py-2 mb-4" style="font-size:0.85rem">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            After scanning & paying, click the button below to confirm.
+                        </div>
+
+                        <form asp-action="ConfirmPayment" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-success w-100 py-2 fw-bold fs-6">
+                                <i class="bi bi-check-circle-fill me-2"></i>I Have Paid
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+
+            <div class="mt-3">
+                <form asp-action="CancelPayment" asp-route-id="@Model.Id" method="post"
+                      onsubmit="return confirm('Are you sure you want to cancel this order? Stock will be restored.')">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        <i class="bi bi-x-circle me-1"></i>Cancel Order &amp; Go Back to Shop
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+// Card number formatting
+document.getElementById('cardNumberInput')?.addEventListener('input', function () {
+    let v = this.value.replace(/\D/g, '').substring(0, 16);
+    this.value = v.replace(/(.{4})/g, '$1 ').trim();
+    let preview = v.padEnd(16, '•').replace(/(.{4})/g, '$1 ').trim();
+    document.getElementById('cardPreview').textContent = preview;
+    // detect card network
+    let net = v[0] === '4' ? 'VISA' : v[0] === '5' ? 'MASTERCARD' : v.startsWith('34') || v.startsWith('37') ? 'AMEX' : 'CARD';
+    document.getElementById('cardNetworkLabel').textContent = net;
+});
+document.getElementById('cardHolderInput')?.addEventListener('input', function () {
+    document.getElementById('holderPreview').textContent = this.value.toUpperCase() || 'YOUR NAME';
+});
+document.getElementById('expiryInput')?.addEventListener('input', function () {
+    let v = this.value.replace(/\D/g, '').substring(0, 4);
+    if (v.length >= 2) v = v.substring(0, 2) + '/' + v.substring(2);
+    this.value = v;
+    document.getElementById('expiryPreview').textContent = v || 'MM/YY';
+});
+
+// QR Code generation — real scannable QR linking to this payment page
+const qrEl = document.getElementById('qrcode');
+if (qrEl && typeof QRCode !== 'undefined') {
+    const payUrl = window.location.origin + '/CustomerOrder/Pay/@Model.Id';
+    new QRCode(qrEl, {
+        text: payUrl,
+        width: 200,
+        height: 200,
+        colorDark: '#1e293b',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+    });
+}
+
+// QR countdown timer
+const countdownEl = document.getElementById('countdown');
+if (countdownEl) {
+    let secs = 600;
+    const timer = setInterval(() => {
+        secs--;
+        if (secs <= 0) { clearInterval(timer); countdownEl.textContent = 'Expired'; return; }
+        const m = Math.floor(secs / 60).toString().padStart(2, '0');
+        const s = (secs % 60).toString().padStart(2, '0');
+        countdownEl.textContent = `${m}:${s}`;
+    }, 1000);
+}
+</script>
+}

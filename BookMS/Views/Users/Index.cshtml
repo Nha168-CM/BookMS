@@ -1,0 +1,62 @@
+@using BookMS.Models
+@model List<AppUser>
+@{ ViewData["Title"] = "Users"; }
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Users</div>
+        <div class="page-subtitle">System user accounts</div>
+    </div>
+    <a asp-controller="Auth" asp-action="Register" class="btn btn-primary">
+        <i class="bi bi-person-plus me-2"></i>Add User
+    </a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">
+                                    @(user.FullName.Length > 0 ? user.FullName[0].ToString().ToUpper() : "U")
+                                </div>
+                                <strong>@user.FullName</strong>
+                            </div>
+                        </td>
+                        <td>@user.Email</td>
+                        <td>@(user.PhoneNumber ?? "-")</td>
+                        <td>
+                            <span class="badge @(user.IsActive ? "bg-success" : "bg-secondary")">
+                                @(user.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td class="text-muted">@user.CreatedAt.ToString("dd MMM yyyy")</td>
+                        <td>
+                            <a asp-action="Profile" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-person me-1"></i>Profile
+                            </a>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-5">No users found.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

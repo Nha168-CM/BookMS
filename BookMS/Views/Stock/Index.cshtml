@@ -1,0 +1,91 @@
+@model List<StockTransaction>
+@{ ViewData["Title"] = "Stock History"; }
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Stock History</div>
+        <div class="page-subtitle">Inventory transaction log</div>
+    </div>
+    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg me-2"></i>Stock In/Out</a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Filter by Book</label>
+                <select name="bookId" class="form-select">
+                    <option value="">All Books</option>
+                    @foreach (var b in ViewBag.Books as List<Book> ?? new List<Book>())
+                    {
+                        <option value="@b.Id">@b.Title</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Filter by Category</label>
+                <select name="categoryId" class="form-select">
+                    <option value="">All Categories</option>
+                    @foreach (var c in ViewBag.Categories as List<Category> ?? new List<Category>())
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-fill"><i class="bi bi-funnel me-1"></i>Filter</button>
+                <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Book</th>
+                    <th>Category</th>
+                    <th>Qty</th>
+                    <th>Before</th>
+                    <th>After</th>
+                    <th>Reference</th>
+                    <th>User</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tx in Model)
+                {
+                    <tr>
+                        <td>@tx.TransactionDate.ToString("dd MMM yyyy HH:mm")</td>
+                        <td>
+                            <span class="badge-status @(tx.Type == StockType.StockIn ? "badge-stockin" : "badge-stockout")">
+                                <i class="bi @(tx.Type == StockType.StockIn ? "bi-arrow-down-circle" : "bi-arrow-up-circle") me-1"></i>
+                                @tx.Type
+                            </span>
+                        </td>
+                        <td><strong>@tx.Book?.Title</strong></td>
+                        <td><span class="badge bg-light text-dark">@tx.Category?.Name</span></td>
+                        <td>
+                            <span class="@(tx.Type == StockType.StockIn ? "text-success" : "text-danger") fw-bold">
+                                @(tx.Type == StockType.StockIn ? "+" : "-")@tx.Quantity
+                            </span>
+                        </td>
+                        <td class="text-muted">@tx.StockBefore</td>
+                        <td><strong>@tx.StockAfter</strong></td>
+                        <td class="text-muted">@(tx.Reference ?? "-")</td>
+                        <td class="text-muted">@tx.User?.Email</td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="9" class="text-center text-muted py-5">No stock transactions found.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

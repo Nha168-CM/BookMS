@@ -1,0 +1,247 @@
+@using BookMS.Controllers
+@model SalesReportViewModel
+@{ ViewData["Title"] = "Sales Report"; }
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Sales Report</div>
+        <div class="page-subtitle">@Model.From.ToString("dd MMM") — @Model.To.ToString("dd MMM yyyy")</div>
+    </div>
+    <button onclick="window.print()" class="btn btn-outline-primary no-print">
+        <i class="bi bi-printer me-2"></i>Print Report
+    </button>
+</div>
+
+<!-- Date Filter -->
+<div class="card mb-4 no-print">
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">From Date</label>
+                <input type="date" name="from" class="form-control" value="@Model.From.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">To Date</label>
+                <input type="date" name="to" class="form-control" value="@Model.To.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-2"></i>Generate Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-currency-dollar"></i></div>
+            <div>
+                <div class="stat-value">$@Model.TotalRevenue.ToString("N0")</div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-receipt"></i></div>
+            <div>
+                <div class="stat-value">@Model.TotalOrders</div>
+                <div class="stat-label">Total Orders</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="bi bi-book"></i></div>
+            <div>
+                <div class="stat-value">@Model.TotalBooksSold</div>
+                <div class="stat-label">Books Sold</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="bi bi-graph-up"></i></div>
+            <div>
+                <div class="stat-value">$@Model.AverageOrderValue.ToString("N2")</div>
+                <div class="stat-label">Avg. Order Value</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Daily Sales Chart -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-bar-chart text-primary"></i> Daily Revenue</div>
+            <div class="card-body">
+                <canvas id="dailyChart" height="280"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Breakdown -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-pie-chart text-primary"></i> Payment Methods</div>
+            <div class="card-body">
+                <canvas id="paymentChart" height="200"></canvas>
+                <div class="mt-3">
+                    @foreach (var p in Model.PaymentBreakdown)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi @(p.Method == PaymentMethod.Cash ? "bi-cash text-success" : p.Method == PaymentMethod.Card ? "bi-credit-card text-info" : "bi-qr-code text-warning")"></i>
+                                <span style="font-size:0.875rem">@p.Method</span>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold" style="font-size:0.875rem">$@p.Total.ToString("N2")</div>
+                                <div class="text-muted" style="font-size:0.75rem">@p.Count orders</div>
+                            </div>
+                        </div>
+                    }
+                    @if (!Model.PaymentBreakdown.Any())
+                    {
+                        <p class="text-muted text-center py-3">No data</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Selling Books -->
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-trophy text-warning"></i> Top Selling Books</div>
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Book Title</th>
+                    <th>Author</th>
+                    <th class="text-center">Qty Sold</th>
+                    <th class="text-end">Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ int rank = 1; }
+                @foreach (var book in Model.TopBooks)
+                {
+                    <tr>
+                        <td>
+                            @if (rank <= 3)
+                            {
+                                <i class="bi bi-trophy-fill @(rank == 1 ? "text-warning" : rank == 2 ? "text-secondary" : "text-danger")"></i>
+                            }
+                            else { <span class="text-muted">@rank</span> }
+                        </td>
+                        <td><strong>@book.Title</strong></td>
+                        <td class="text-muted">@book.Author</td>
+                        <td class="text-center"><span class="badge bg-primary">@book.TotalQty pcs</span></td>
+                        <td class="text-end fw-bold text-success">$@book.TotalRevenue.ToString("N2")</td>
+                    </tr>
+                    rank++;
+                }
+                @if (!Model.TopBooks.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">No sales data in this period</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Orders Table -->
+<div class="card">
+    <div class="card-header"><i class="bi bi-list-ul text-primary"></i> Order Details (@Model.Orders.Count orders)</div>
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+                <tr><th>Order #</th><th>Date</th><th>Customer</th><th>Cashier</th><th>Payment</th><th class="text-end">Total</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var o in Model.Orders)
+                {
+                    <tr>
+                        <td><a asp-controller="Orders" asp-action="Details" asp-route-id="@o.Id" class="text-primary fw-bold">@o.OrderNumber</a></td>
+                        <td>@o.OrderDate.ToString("dd MMM yyyy HH:mm")</td>
+                        <td>@(o.CustomerName ?? "Walk-in")</td>
+                        <td>@o.Cashier?.FullName</td>
+                        <td><span class="badge bg-light text-dark">@o.PaymentMethod</span></td>
+                        <td class="text-end fw-bold">$@o.TotalAmount.ToString("N2")</td>
+                    </tr>
+                }
+                @if (!Model.Orders.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">No orders in this period</td></tr>
+                }
+            </tbody>
+            @if (Model.Orders.Any())
+            {
+                <tfoot>
+                    <tr class="table-primary">
+                        <td colspan="5" class="fw-bold text-end">Total Revenue</td>
+                        <td class="text-end fw-bold fs-6">$@Model.TotalRevenue.ToString("N2")</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// Daily Revenue Chart
+const dailyLabels = [@Html.Raw(string.Join(",", Model.DailySales.Select(d => $"\"{d.Date:dd MMM}\"")))];
+const dailyData = [@Html.Raw(string.Join(",", Model.DailySales.Select(d => d.Revenue.ToString("F2"))))];
+
+new Chart(document.getElementById('dailyChart'), {
+    type: 'bar',
+    data: {
+        labels: dailyLabels.length ? dailyLabels : ['No data'],
+        datasets: [{
+            label: 'Revenue ($)',
+            data: dailyData.length ? dailyData : [0],
+            backgroundColor: 'rgba(79,70,229,0.7)',
+            borderColor: '#4f46e5',
+            borderWidth: 2,
+            borderRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { callback: v => '$' + v } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+
+// Payment Method Pie Chart
+const payLabels = [@Html.Raw(string.Join(",", Model.PaymentBreakdown.Select(p => $"\"{p.Method}\"")))];
+const payData = [@Html.Raw(string.Join(",", Model.PaymentBreakdown.Select(p => p.Total.ToString("F2"))))];
+
+new Chart(document.getElementById('paymentChart'), {
+    type: 'doughnut',
+    data: {
+        labels: payLabels.length ? payLabels : ['No data'],
+        datasets: [{
+            data: payData.length ? payData : [1],
+            backgroundColor: ['#10b981', '#3b82f6', '#f59e0b'],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } }
+    }
+});
+</script>
+}

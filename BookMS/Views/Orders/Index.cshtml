@@ -1,0 +1,74 @@
+@model List<Order>
+@{ ViewData["Title"] = "Orders"; }
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Orders</div>
+        <div class="page-subtitle">Sales history & order management</div>
+    </div>
+    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg me-2"></i>New Sale</a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in Model)
+                {
+                    <tr>
+                        <td><strong class="text-primary">@order.OrderNumber</strong></td>
+                        <td>@order.OrderDate.ToString("dd MMM yyyy HH:mm")</td>
+                        <td>@(order.CustomerName ?? "<span class='text-muted'>Walk-in</span>")</td>
+                        <td><span class="badge bg-light text-dark">@order.OrderDetails.Count items</span></td>
+                        <td><strong>$@order.TotalAmount.ToString("N2")</strong></td>
+                        <td>
+                            <span class="badge @(order.PaymentMethod == PaymentMethod.Cash ? "bg-success" : order.PaymentMethod == PaymentMethod.Card ? "bg-info" : "bg-warning text-dark")">
+                                <i class="bi @(order.PaymentMethod == PaymentMethod.Cash ? "bi-cash" : order.PaymentMethod == PaymentMethod.Card ? "bi-credit-card" : "bi-qr-code") me-1"></i>
+                                @order.PaymentMethod
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge-status badge-@order.Status.ToString().ToLower()">@order.Status</span>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a asp-action="Details" asp-route-id="@order.Id" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a asp-action="Receipt" asp-route-id="@order.Id" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-printer"></i>
+                                </a>
+                                @if (order.Status == OrderStatus.Completed)
+                                {
+                                    <form asp-action="Cancel" asp-route-id="@order.Id" method="post"
+                                          onsubmit="return confirm('Cancel order @order.OrderNumber?')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="8" class="text-center text-muted py-5">No orders yet.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

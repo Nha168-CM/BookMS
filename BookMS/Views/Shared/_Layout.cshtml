@@ -1,0 +1,181 @@
+@using BookMS.Models
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<AppUser> UserManager
+@{
+    var adminUser = User.Identity?.IsAuthenticated == true
+        ? await UserManager.GetUserAsync(User)
+        : null;
+    string? adminProfileImage = adminUser?.ProfileImage;
+    string adminInitial = adminUser?.FullName?.Length > 0
+        ? adminUser.FullName.Substring(0, 1).ToUpper()
+        : (User.Identity?.Name?[0].ToString().ToUpper() ?? "?");
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Book Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        .admin-avatar { width:32px; height:32px; border-radius:50%; overflow:hidden; background:#4f46e5; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:0.8rem; flex-shrink:0; vertical-align:middle; }
+        .admin-avatar img { width:100%; height:100%; object-fit:cover; }
+    </style>
+</head>
+<body>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <div class="wrapper">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="sidebar">
+                <div class="sidebar-brand">
+                    <i class="bi bi-book-half"></i>
+                    <span>BookStore</span>
+                </div>
+                <ul class="sidebar-nav">
+                    <li class="nav-label">Main</li>
+                    <li>
+                        <a asp-controller="Home" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">
+                            <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-label">Catalog</li>
+                    <li>
+                        <a asp-controller="Categories" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Categories" ? "active" : "")">
+                            <i class="bi bi-tag"></i><span>Categories</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Books" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Books" ? "active" : "")">
+                            <i class="bi bi-journal-bookmark"></i><span>Books</span>
+                        </a>
+                    </li>
+                    <li class="nav-label">Sales</li>
+                    <li>
+                        <a asp-controller="Orders" asp-action="Create" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" && ViewContext.RouteData.Values["action"]?.ToString() == "Create" ? "active" : "")">
+                            <i class="bi bi-cart-plus"></i><span>New Sale</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Orders" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                            <i class="bi bi-receipt"></i><span>Orders</span>
+                        </a>
+                    </li>
+                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                    {
+                        <li>
+                            <a asp-controller="Sales" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Sales" ? "active" : "")">
+                                <i class="bi bi-graph-up-arrow"></i><span>Sales Report</span>
+                            </a>
+                        </li>
+                    }
+                    <li class="nav-label">Inventory</li>
+                    <li>
+                        <a asp-controller="Stock" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Stock" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                            <i class="bi bi-boxes"></i><span>Stock History</span>
+                        </a>
+                    </li>
+                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                    {
+                        <li>
+                            <a asp-controller="Stock" asp-action="Create" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Stock" && ViewContext.RouteData.Values["action"]?.ToString() == "Create" ? "active" : "")">
+                                <i class="bi bi-box-arrow-in-down"></i><span>Stock In/Out</span>
+                            </a>
+                        </li>
+                        <li class="nav-label">Administration</li>
+                        <li>
+                            <a asp-controller="AdminUser" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminUser" ? "active" : "")">
+                                <i class="bi bi-people"></i><span>Manage Clients</span>
+                            </a>
+                        </li>
+                    }
+                    <li>
+                        <a asp-controller="Shop" asp-action="Index" class="nav-link" target="_blank">
+                            <i class="bi bi-shop"></i><span>View Shop</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Topbar -->
+                <header class="topbar">
+                    <button id="sidebarToggle" class="btn btn-link text-dark">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+                    <div class="topbar-right">
+                        <div class="dropdown">
+                            <button class="btn btn-link dropdown-toggle text-dark text-decoration-none d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+                                <div class="admin-avatar">
+                                    @if (!string.IsNullOrEmpty(adminProfileImage))
+                                    {
+                                        <img src="@adminProfileImage" alt="avatar" />
+                                    }
+                                    else
+                                    {
+                                        @adminInitial
+                                    }
+                                </div>
+                                @User.Identity!.Name
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Users" asp-action="Profile">
+                                        <i class="bi bi-person me-2"></i>Profile
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Users" asp-action="ChangePassword">
+                                        <i class="bi bi-lock me-2"></i>Change Password
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" asp-controller="Auth" asp-action="Logout">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Page Content -->
+                <main class="page-content">
+                    @if (TempData["Success"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+                    @RenderBody()
+                </main>
+            </div>
+        </div>
+    }
+    else
+    {
+        @RenderBody()
+    }
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            document.querySelector('.main-content').classList.toggle('expanded');
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

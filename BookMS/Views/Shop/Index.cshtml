@@ -1,0 +1,278 @@
+@model List<BookMS.Models.Book>
+@{ ViewData["Title"] = "Shop"; Layout = "_LayoutCustomer"; }
+
+<!-- Hero Banner -->
+<div style="background: linear-gradient(135deg, #1e293b 0%, #4f46e5 100%); color: #fff; padding: clamp(30px, 5vw, 60px) 0 clamp(25px, 4vw, 50px);">
+    <div class="container text-center">
+        <h1 class="fw-800 mb-3" style="font-size:clamp(1.6rem, 4vw, 2.8rem); font-weight:800">
+            <i class="bi bi-book-half me-3"></i>BookStore
+        </h1>
+        <p class="mb-4" style="font-size:clamp(0.9rem, 2vw, 1.1rem); opacity:0.85">ស្វែងរកសៀវភៅដែលអ្នកចូលចិត្ត · Find your next great read</p>
+        <form method="get" asp-action="Index" asp-controller="Shop" class="d-flex justify-content-center gap-2 px-3">
+            <div class="input-group" style="max-width:500px">
+                <input type="text" name="search" value="@ViewBag.Search" class="form-control form-control-lg"
+                       placeholder="Search by title, author, ISBN..." style="border-radius:10px 0 0 10px" />
+                <button type="submit" class="btn btn-warning px-4" style="border-radius:0 10px 10px 0; font-weight:600">
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="container py-4">
+    <!-- Category Pills -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a asp-action="Index" asp-controller="Shop"
+           class="cat-pill @(ViewBag.CategoryId == null ? "active" : "")">All Books</a>
+        @foreach (var cat in ViewBag.Categories as List<BookMS.Models.Category> ?? new())
+        {
+            <a asp-action="Index" asp-controller="Shop" asp-route-categoryId="@cat.Id"
+               asp-route-search="@ViewBag.Search"
+               class="cat-pill @(ViewBag.CategoryId?.ToString() == cat.Id.ToString() ? "active" : "")">
+                @cat.Name
+            </a>
+        }
+    </div>
+
+    <!-- Sort & Results -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="text-muted" style="font-size:0.875rem">
+            Showing <strong>@Model.Count</strong> of <strong>@ViewBag.Total</strong> books
+            @if (!string.IsNullOrEmpty(ViewBag.Search as string))
+            { <span>for "<em>@ViewBag.Search</em>"</span> }
+        </div>
+        <form method="get" asp-action="Index" asp-controller="Shop" class="d-flex align-items-center gap-2">
+            <input type="hidden" name="search" value="@ViewBag.Search" />
+            <input type="hidden" name="categoryId" value="@ViewBag.CategoryId" />
+            <select name="sort" class="form-select form-select-sm" style="width:180px" onchange="this.form.submit()">
+                <option value="">Newest First</option>
+                <option value="price_asc"  selected="@(ViewBag.Sort == "price_asc"  ? "selected" : null)">Price: Low to High</option>
+                <option value="price_desc" selected="@(ViewBag.Sort == "price_desc" ? "selected" : null)">Price: High to Low</option>
+                <option value="title"      selected="@(ViewBag.Sort == "title"      ? "selected" : null)">Title A–Z</option>
+            </select>
+        </form>
+    </div>
+
+    <!-- Book Grid -->
+    @if (Model.Any())
+    {
+        <div class="row g-4">
+            @foreach (var book in Model)
+            {
+                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                    <div class="book-card">
+                        <a asp-controller="Shop" asp-action="Details" asp-route-id="@book.Id" class="text-decoration-none">
+                            @if (!string.IsNullOrEmpty(book.ImageUrl))
+                            { <img src="@book.ImageUrl" class="book-cover" alt="@book.Title" /> }
+                            else
+                            { <div class="book-cover-placeholder"><i class="bi bi-book"></i></div> }
+                        </a>
+                        <div class="p-3 d-flex flex-column" style="flex:1">
+                            <span class="badge bg-light text-primary mb-1" style="font-size:0.7rem">@book.Category?.Name</span>
+                            <a asp-controller="Shop" asp-action="Details" asp-route-id="@book.Id"
+                               class="text-decoration-none text-dark">
+                                <div class="fw-bold mb-1 text-truncate" style="font-size:0.9rem" title="@book.Title">@book.Title</div>
+                            </a>
+                            @{
+                                var shopAuthor = book.Author ?? "";
+                                var shopAuthorShort = shopAuthor.Length > 22 ? shopAuthor.Substring(0, 22) + "..." : shopAuthor;
+                            }
+                            <div class="text-muted mb-2" style="font-size:0.8rem;height:1.2em;overflow:hidden;white-space:nowrap" title="@shopAuthor">@shopAuthorShort</div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="book-price">$@book.Price.ToString("N2")</span>
+                                <span style="font-size:0.75rem;color:@(book.Stock <= 5 ? "#d97706" : "#059669")">
+                                    @(book.Stock <= 5 ? $"Only {book.Stock} left" : "In Stock")
+                                </span>
+                            </div>
+                            <div class="mt-auto">
+                            @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Customer"))
+                            {
+                                <!-- Logged-in Customer: Add to Cart directly -->
+                                <form asp-controller="Cart" asp-action="Add" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="bookId" value="@book.Id" />
+                                    <input type="hidden" name="qty" value="1" />
+                                    <button type="submit" class="btn-cart w-100">
+                                        <i class="bi bi-cart-plus me-1"></i>Add to Cart
+                                    </button>
+                                </form>
+                            }
+                            else if (!User.Identity?.IsAuthenticated ?? true)
+                            {
+                                <!-- Guest: Show Add to Cart → opens Login/Register modal -->
+                                <button type="button" class="btn-cart w-100"
+                                        onclick="showAuthModal(@book.Id, '@book.Title.Replace("'","\\'")')">
+                                    <i class="bi bi-cart-plus me-1"></i>Add to Cart
+                                </button>
+                            }
+                            else
+                            {
+                                <!-- Admin/Staff viewing shop: just view -->
+                                <a asp-controller="Shop" asp-action="Details" asp-route-id="@book.Id"
+                                   class="btn-cart w-100 text-center d-block text-decoration-none">
+                                    <i class="bi bi-eye me-1"></i>View Details
+                                </a>
+                            }
+                            </div><!-- /mt-auto -->
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        @if ((int)ViewBag.TotalPages > 1)
+        {
+            <nav class="mt-5 d-flex justify-content-center">
+                <ul class="pagination gap-1">
+                    @for (int p = 1; p <= (int)ViewBag.TotalPages; p++)
+                    {
+                        <li class="page-item @(p == (int)ViewBag.Page ? "active" : "")">
+                            <a class="page-link rounded" asp-action="Index" asp-controller="Shop"
+                               asp-route-page="@p" asp-route-search="@ViewBag.Search"
+                               asp-route-categoryId="@ViewBag.CategoryId"
+                               asp-route-sort="@ViewBag.Sort">@p</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-search text-muted" style="font-size:4rem"></i>
+            <h5 class="text-muted mt-3">No books found</h5>
+            <a asp-action="Index" asp-controller="Shop" class="btn btn-primary mt-2">Clear filters</a>
+        </div>
+    }
+</div>
+
+<!-- ===== Auth Modal for Guest ===== -->
+<div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pb-4 pt-2">
+                <!-- Book info -->
+                <div class="text-center mb-4">
+                    <div style="width:52px;height:52px;border-radius:14px;background:#4f46e5;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+                        <i class="bi bi-cart-plus text-white fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-1">Add to Cart</h5>
+                    <p class="text-muted mb-0" style="font-size:0.875rem">
+                        Sign in to add <strong id="modalBookTitle"></strong> to your cart
+                    </p>
+                </div>
+
+                <!-- Tabs: Login / Register -->
+                <ul class="nav nav-pills mb-4 gap-2" id="authTabs">
+                    <li class="nav-item flex-fill">
+                        <button class="nav-link active w-100 fw-semibold" onclick="switchTab('loginTab','registerTab',this,document.getElementById('regTabBtn'))">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+                        </button>
+                    </li>
+                    <li class="nav-item flex-fill">
+                        <button id="regTabBtn" class="nav-link w-100 fw-semibold" onclick="switchTab('registerTab','loginTab',this,document.querySelector('#authTabs .nav-link.active'))">
+                            <i class="bi bi-person-plus me-1"></i>Register
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Login Form -->
+                <div id="loginTab">
+                    <form id="modalLoginForm" method="post" asp-controller="Auth" asp-action="Login">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="returnUrl" id="loginReturnUrl" />
+                        <div class="mb-3">
+                            <input type="text" name="EmailOrPhone" class="form-control" placeholder="Email or Phone Number" required />
+                        </div>
+                        <div class="input-group mb-3">
+                            <input type="password" id="modalPwd" name="Password" class="form-control border-end-0" placeholder="Password" required />
+                            <button type="button" class="input-group-text bg-white border-start-0" onclick="toggleModalPwd()">
+                                <i id="modalEye" class="bi bi-eye" style="color:#94a3b8"></i>
+                            </button>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In & Add to Cart
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Register Form -->
+                <div id="registerTab" class="d-none">
+                    <form method="post" asp-controller="Auth" asp-action="Register">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="returnUrl" id="regReturnUrl" />
+                        <div class="mb-3">
+                            <input type="text" name="FullName" class="form-control" placeholder="Full Name" required />
+                        </div>
+                        <div class="mb-3">
+                            <input type="email" name="Email" class="form-control" placeholder="Email (optional if phone given)" />
+                        </div>
+                        <div class="mb-3">
+                            <input type="tel" name="Phone" class="form-control" placeholder="Phone (optional if email given)" />
+                        </div>
+                        <div class="input-group mb-3">
+                            <input type="password" id="modalRegPwd" name="Password" class="form-control border-end-0" placeholder="Password (min 6)" required />
+                            <button type="button" class="input-group-text bg-white border-start-0" onclick="toggleModalRegPwd()">
+                                <i id="modalRegEye" class="bi bi-eye" style="color:#94a3b8"></i>
+                            </button>
+                        </div>
+                        <div class="input-group mb-3">
+                            <input type="password" id="modalConfPwd" name="ConfirmPassword" class="form-control border-end-0" placeholder="Confirm Password" required />
+                            <button type="button" class="input-group-text bg-white border-start-0" onclick="toggleModalConfPwd()">
+                                <i id="modalConfEye" class="bi bi-eye" style="color:#94a3b8"></i>
+                            </button>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                            <i class="bi bi-person-plus me-2"></i>Register & Add to Cart
+                        </button>
+                    </form>
+                </div>
+
+                <p class="text-center text-muted mt-3 mb-0" style="font-size:0.8rem">
+                    Or <a asp-controller="Auth" asp-action="Login" class="text-decoration-none fw-semibold" style="color:#4f46e5">go to full login page</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+var authModal;
+document.addEventListener('DOMContentLoaded', function() {
+    authModal = new bootstrap.Modal(document.getElementById('authModal'));
+});
+
+function showAuthModal(bookId, bookTitle) {
+    document.getElementById('modalBookTitle').textContent = bookTitle;
+    // Set returnUrl so after login/register → go to checkout
+    var returnUrl = '/CustomerOrder/Checkout';
+    document.getElementById('loginReturnUrl').value  = returnUrl;
+    document.getElementById('regReturnUrl').value    = returnUrl;
+    authModal.show();
+}
+
+function switchTab(showId, hideId, activeBtn, inactiveBtn) {
+    document.getElementById(showId).classList.remove('d-none');
+    document.getElementById(hideId).classList.add('d-none');
+    activeBtn.classList.add('active');
+    inactiveBtn.classList.remove('active');
+}
+
+function togglePwdField(inputId, iconId) {
+    const inp  = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (inp.type === 'password') { inp.type = 'text'; icon.className = 'bi bi-eye-slash'; }
+    else                         { inp.type = 'password'; icon.className = 'bi bi-eye'; }
+}
+function toggleModalPwd()     { togglePwdField('modalPwd',     'modalEye'); }
+function toggleModalRegPwd()  { togglePwdField('modalRegPwd',  'modalRegEye'); }
+function toggleModalConfPwd() { togglePwdField('modalConfPwd', 'modalConfEye'); }
+</script>
+}

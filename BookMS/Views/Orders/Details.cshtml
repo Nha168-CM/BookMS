@@ -1,0 +1,140 @@
+@model Order
+@using BookMS.Models
+@{
+    ViewData["Title"] = "Order Details";
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Order Details</div>
+        <div class="page-subtitle">@Model.OrderNumber</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-2"></i>Back</a>
+        <a asp-action="Receipt" asp-route-id="@Model.Id" class="btn btn-primary"><i class="bi bi-printer me-2"></i>Print Receipt</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-list-ul text-primary"></i> Order Items</div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead><tr><th>Book</th><th>Author</th><th class="text-center">Qty</th><th class="text-end">Price</th><th class="text-end">Total</th></tr></thead>
+                    <tbody>
+                        @foreach (var d in Model.OrderDetails)
+                        {
+                            <tr>
+                                <td><strong>@d.Book?.Title</strong></td>
+                                <td class="text-muted">@d.Book?.Author</td>
+                                <td class="text-center">@d.Quantity</td>
+                                <td class="text-end">$@d.UnitPrice.ToString("N2")</td>
+                                <td class="text-end"><strong>$@((d.UnitPrice * d.Quantity).ToString("N2"))</strong></td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-light"><td colspan="4" class="text-end fw-bold">Subtotal</td><td class="text-end">$@Model.SubTotal.ToString("N2")</td></tr>
+                        @if (Model.Discount > 0)
+                        {
+                            <tr class="table-light"><td colspan="4" class="text-end fw-bold text-danger">Discount</td><td class="text-end text-danger">-$@Model.Discount.ToString("N2")</td></tr>
+                        }
+                        <tr class="table-primary"><td colspan="4" class="text-end fw-bold fs-6">Total</td><td class="text-end fw-bold fs-6">$@Model.TotalAmount.ToString("N2")</td></tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-info-circle text-primary"></i> Order Info</div>
+            <div class="card-body">
+                <dl class="row mb-0" style="font-size:0.875rem">
+                    <dt class="col-5 text-muted">Status</dt>
+                    <dd class="col-7"><span class="badge-status badge-@Model.Status.ToString().ToLower()">@Model.Status</span></dd>
+                    <dt class="col-5 text-muted">Payment</dt>
+                    <dd class="col-7">@Model.PaymentMethod</dd>
+                    <dt class="col-5 text-muted">Pay Status</dt>
+                    <dd class="col-7">
+                        @if (Model.PaymentStatus == PaymentStatus.Paid)
+                        {
+                            <span class="badge bg-success">Paid</span>
+                        }
+                        else if (Model.PaymentStatus == PaymentStatus.Refunded)
+                        {
+                            <span class="badge bg-secondary">Refunded</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">Unpaid</span>
+                        }
+                    </dd>
+                    <dt class="col-5 text-muted">Customer</dt>
+                    <dd class="col-7">@(Model.CustomerName ?? "Walk-in")</dd>
+                    <dt class="col-5 text-muted">Phone</dt>
+                    <dd class="col-7">@(Model.CustomerPhone ?? "-")</dd>
+                    <dt class="col-5 text-muted">Cashier</dt>
+                    <dd class="col-7">@Model.Cashier?.FullName</dd>
+                    <dt class="col-5 text-muted">Date</dt>
+                    <dd class="col-7">@Model.OrderDate.ToString("dd MMM yyyy HH:mm")</dd>
+                    <dt class="col-5 text-muted">Paid</dt>
+                    <dd class="col-7">$@Model.AmountPaid.ToString("N2")</dd>
+                    <dt class="col-5 text-muted">Change</dt>
+                    <dd class="col-7 text-success fw-bold">$@Model.Change.ToString("N2")</dd>
+                </dl>
+            </div>
+        </div>
+
+        @* ===== Mark as Paid — Admin/Staff only, when order is Unpaid ===== *@
+        @if (Model.PaymentStatus == PaymentStatus.Unpaid && Model.Status != OrderStatus.Cancelled)
+        {
+            <div class="card border-success mb-3">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-cash-coin me-2"></i>Collect Payment
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3" style="font-size:0.875rem">
+                        Customer chose <strong>@Model.PaymentMethod</strong>.
+                        Total due: <strong class="text-success">$@Model.TotalAmount.ToString("N2")</strong>
+                    </p>
+                    <form asp-action="MarkAsPaid" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        @if (Model.PaymentMethod == PaymentMethod.Cash)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold" style="font-size:0.875rem">Amount Received ($)</label>
+                                <input type="number" name="amountPaid" class="form-control"
+                                       value="@Model.TotalAmount" step="0.01" min="@Model.TotalAmount" required />
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" name="amountPaid" value="@Model.TotalAmount" />
+                            <p class="text-muted mb-3" style="font-size:0.8rem">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Verify that @Model.PaymentMethod payment has been received before confirming.
+                            </p>
+                        }
+                        <button type="submit" class="btn btn-success w-100 fw-bold"
+                                onclick="return confirm('Confirm payment received for order @Model.OrderNumber?')">
+                            <i class="bi bi-check-circle-fill me-2"></i>Confirm Payment
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+
+        @if (Model.Status == OrderStatus.Completed && Model.PaymentStatus != PaymentStatus.Refunded)
+        {
+            <form asp-action="Cancel" asp-route-id="@Model.Id" method="post"
+                  onsubmit="return confirm('Are you sure you want to cancel this order?')">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger w-100">
+                    <i class="bi bi-x-circle me-2"></i>Cancel Order
+                </button>
+            </form>
+        }
+    </div>
+</div>

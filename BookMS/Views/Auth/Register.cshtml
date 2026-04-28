@@ -1,0 +1,148 @@
+@model BookMS.ViewModels.RegisterViewModel
+@{ ViewData["Title"] = "Register"; Layout = null; }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register – BookStore</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" />
+    <style>
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; overflow-x: hidden; }
+        body { background: #0f172a; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .auth-card { background: #fff; border-radius: 20px; padding: clamp(24px, 4vw, 40px); width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+        .auth-logo { background: #4f46e5; color: #fff; width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 16px; }
+        .form-control:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.15); }
+        .btn-primary { background: #4f46e5; border: none; }
+        .btn-primary:hover { background: #4338ca; }
+        .input-group-text { background: #f8fafc; border-color: #dee2e6; color: #64748b; cursor: pointer; }
+        .input-group-text:hover { background: #e2e8f0; }
+        .input-icon { position: relative; }
+        .input-icon > i.prefix { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; z-index: 5; pointer-events: none; }
+        .input-icon input { padding-left: 38px; }
+        .divider { display: flex; align-items: center; gap: 12px; color: #94a3b8; font-size: 0.8rem; margin: 16px 0; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+        .optional-badge { font-size: 0.7rem; color: #94a3b8; font-weight: 400; margin-left: 6px; }
+        
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <div class="auth-logo"><i class="bi bi-book-half"></i></div>
+        <h4 class="text-center fw-bold mb-1">Create Account</h4>
+        <p class="text-center text-muted mb-4" style="font-size:0.875rem">Register to access the system</p>
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 mb-3" style="font-size:0.85rem"></div>
+
+        <form asp-action="Register" asp-route-returnUrl="@ViewBag.ReturnUrl" method="post">
+            @Html.AntiForgeryToken()
+
+            <!-- Full Name -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold" style="font-size:0.875rem">Full Name</label>
+                <div class="input-icon">
+                    <i class="bi bi-person prefix"></i>
+                    <input asp-for="FullName" class="form-control" placeholder="John Doe" />
+                </div>
+                <span asp-validation-for="FullName" class="text-danger small"></span>
+            </div>
+
+            <p class="text-muted mb-2" style="font-size:0.8rem">
+                <i class="bi bi-info-circle me-1"></i>Please provide at least one: Email <strong>or</strong> Phone Number
+            </p>
+
+            <!-- Email -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold" style="font-size:0.875rem">
+                    Email Address <span class="optional-badge">(optional if phone provided)</span>
+                </label>
+                <div class="input-icon">
+                    <i class="bi bi-envelope prefix"></i>
+                    <input asp-for="Email" class="form-control" placeholder="john@example.com" autocomplete="email" />
+                </div>
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="divider">or</div>
+
+            <!-- Phone -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold" style="font-size:0.875rem">
+                    Phone Number <span class="optional-badge">(optional if email provided)</span>
+                </label>
+                <div class="input-icon">
+                    <i class="bi bi-telephone prefix"></i>
+                    <input asp-for="Phone" class="form-control" placeholder="012 345 678" inputmode="tel" />
+                </div>
+                <span asp-validation-for="Phone" class="text-danger small"></span>
+            </div>
+
+            <!-- Password -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold" style="font-size:0.875rem">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text border-end-0" style="border-radius:8px 0 0 8px">
+                        <i class="bi bi-lock"></i>
+                    </span>
+                    <input asp-for="Password" id="passwordInput" type="password"
+                           class="form-control border-start-0 border-end-0"
+                           placeholder="Min 6 characters" autocomplete="new-password" />
+                    <button type="button" class="input-group-text border-start-0"
+                            style="border-radius:0 8px 8px 0" onclick="togglePwd('passwordInput','eyeIcon1')">
+                        <i id="eyeIcon1" class="bi bi-eye"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="Password" class="text-danger small"></span>
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="mb-4">
+                <label class="form-label fw-semibold" style="font-size:0.875rem">Confirm Password</label>
+                <div class="input-group">
+                    <span class="input-group-text border-end-0" style="border-radius:8px 0 0 8px">
+                        <i class="bi bi-lock-fill"></i>
+                    </span>
+                    <input asp-for="ConfirmPassword" id="confirmInput" type="password"
+                           class="form-control border-start-0 border-end-0"
+                           placeholder="Repeat password" autocomplete="new-password" />
+                    <button type="button" class="input-group-text border-start-0"
+                            style="border-radius:0 8px 8px 0" onclick="togglePwd('confirmInput','eyeIcon2')">
+                        <i id="eyeIcon2" class="bi bi-eye"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                <i class="bi bi-person-plus me-2"></i>Register
+            </button>
+        </form>
+
+        <p class="text-center mt-4 mb-0" style="font-size:0.875rem">
+            Already have an account?
+            <a asp-action="Login" asp-route-returnUrl="@ViewBag.ReturnUrl" class="fw-bold text-decoration-none" style="color:#4f46e5">Sign In</a>
+        </p>
+        <p class="text-center mt-2 mb-0" style="font-size:0.875rem">
+            <a asp-controller="Shop" asp-action="Index" class="text-muted text-decoration-none">
+                <i class="bi bi-arrow-left me-1"></i>Continue browsing shop
+            </a>
+        </p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePwd(inputId, iconId) {
+            const inp  = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                inp.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+    </script>
+</body>
+</html>

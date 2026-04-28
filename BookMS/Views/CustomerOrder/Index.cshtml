@@ -1,0 +1,57 @@
+@model List<BookMS.Models.Order>
+@using BookMS.Models
+@{ ViewData["Title"] = "My Orders"; Layout = "_LayoutCustomer"; }
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0"><i class="bi bi-bag me-2 text-primary"></i>My Orders</h3>
+        <a asp-controller="Shop" asp-action="Index" class="btn btn-primary btn-sm px-3">
+            <i class="bi bi-shop me-1"></i>Shop More
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-bag-x text-muted" style="font-size:5rem"></i>
+            <h5 class="text-muted mt-3">No orders yet</h5>
+            <a asp-controller="Shop" asp-action="Index" class="btn btn-primary mt-3 px-4">Start Shopping</a>
+        </div>
+    }
+    else
+    {
+        @foreach (var order in Model)
+        {
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-body p-4">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-3">
+                            <div class="text-muted" style="font-size:0.75rem">ORDER NUMBER</div>
+                            <div class="fw-bold text-primary">@order.OrderNumber</div>
+                            <div class="text-muted" style="font-size:0.8rem">@order.OrderDate.ToString("dd MMM yyyy")</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-muted" style="font-size:0.75rem">ITEMS</div>
+                            <div class="fw-semibold">@order.OrderDetails.Count book(s)</div>
+                            <div class="text-muted" style="font-size:0.8rem">@order.OrderDetails.Sum(od => od.Quantity) qty total</div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-muted" style="font-size:0.75rem">TOTAL</div>
+                            <div class="fw-bold text-primary fs-6">$@order.TotalAmount.ToString("N2")</div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-muted" style="font-size:0.75rem">STATUS</div>
+                            <span class="status-@order.Status.ToString().ToLower()">@order.Status</span>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <a asp-controller="CustomerOrder" asp-action="Details" asp-route-id="@order.Id"
+                               class="btn btn-outline-primary btn-sm px-3">
+                                <i class="bi bi-eye me-1"></i>Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>

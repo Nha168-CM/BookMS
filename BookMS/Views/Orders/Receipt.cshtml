@@ -1,0 +1,119 @@
+@model Order
+@{ ViewData["Title"] = "Receipt"; }
+
+<div class="no-print d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="page-title">Receipt</div>
+        <div class="page-subtitle">@Model.OrderNumber</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-2"></i>Orders</a>
+        <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer me-2"></i>Print Receipt</button>
+    </div>
+</div>
+
+<!-- A4 Receipt -->
+<div class="receipt-page">
+    <div class="card p-5">
+        <!-- Header -->
+        <div class="receipt-header">
+            <div class="receipt-store-name"><i class="bi bi-book-half me-2"></i>@(Model.Receipt?.StoreName ?? "Book Store")</div>
+            <div class="text-muted">@Model.Receipt?.StoreAddress</div>
+            <div class="text-muted">Tel: @Model.Receipt?.StorePhone</div>
+        </div>
+
+        <!-- Receipt Meta -->
+        <div class="row mb-4">
+            <div class="col-6">
+                <table class="table table-borderless table-sm mb-0">
+                    <tr><td class="text-muted" style="width:130px">Receipt No.</td><td><strong>@Model.Receipt?.ReceiptNumber</strong></td></tr>
+                    <tr><td class="text-muted">Order No.</td><td><strong>@Model.OrderNumber</strong></td></tr>
+                    <tr><td class="text-muted">Date</td><td>@Model.OrderDate.ToString("dd MMM yyyy HH:mm")</td></tr>
+                    <tr><td class="text-muted">Cashier</td><td>@Model.Cashier?.FullName</td></tr>
+                </table>
+            </div>
+            <div class="col-6 text-end">
+                <div class="d-inline-block text-start">
+                    <div class="text-muted small">Customer</div>
+                    <div class="fw-bold">@(Model.CustomerName ?? "Walk-in Customer")</div>
+                    @if (!string.IsNullOrEmpty(Model.CustomerPhone))
+                    {
+                        <div class="text-muted">@Model.CustomerPhone</div>
+                    }
+                    <div class="mt-2">
+                        <span class="badge @(Model.PaymentMethod == PaymentMethod.Cash ? "bg-success" : Model.PaymentMethod == PaymentMethod.Card ? "bg-info" : "bg-warning text-dark") fs-6">
+                            <i class="bi @(Model.PaymentMethod == PaymentMethod.Cash ? "bi-cash" : Model.PaymentMethod == PaymentMethod.Card ? "bi-credit-card" : "bi-qr-code") me-1"></i>
+                            @Model.PaymentMethod Payment
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <table class="table">
+            <thead>
+                <tr style="background:#f8fafc">
+                    <th>#</th>
+                    <th>Book Title</th>
+                    <th>Author</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-end">Unit Price</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ int i = 1; }
+                @foreach (var detail in Model.OrderDetails)
+                {
+                    <tr>
+                        <td>@i</td>
+                        <td><strong>@detail.Book?.Title</strong></td>
+                        <td class="text-muted">@detail.Book?.Author</td>
+                        <td class="text-center">@detail.Quantity</td>
+                        <td class="text-end">$@detail.UnitPrice.ToString("N2")</td>
+                        <td class="text-end"><strong>$@((detail.UnitPrice * detail.Quantity).ToString("N2"))</strong></td>
+                    </tr>
+                    i++;
+                }
+            </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="row justify-content-end">
+            <div class="col-md-5">
+                <table class="table table-borderless">
+                    <tr>
+                        <td class="text-muted">Subtotal</td>
+                        <td class="text-end fw-semibold">$@Model.SubTotal.ToString("N2")</td>
+                    </tr>
+                    @if (Model.Discount > 0)
+                    {
+                        <tr>
+                            <td class="text-muted">Discount</td>
+                            <td class="text-end text-danger">-$@Model.Discount.ToString("N2")</td>
+                        </tr>
+                    }
+                    <tr style="border-top:2px solid #e2e8f0">
+                        <td class="fw-bold fs-5">Total</td>
+                        <td class="text-end fw-bold fs-5 text-primary">$@Model.TotalAmount.ToString("N2")</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Amount Paid</td>
+                        <td class="text-end">$@Model.AmountPaid.ToString("N2")</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Change</td>
+                        <td class="text-end text-success fw-semibold">$@Model.Change.ToString("N2")</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-4 pt-4" style="border-top:2px dashed #e2e8f0">
+            <p class="text-muted mb-1">Thank you for your purchase!</p>
+            <p class="text-muted small">Please keep this receipt for your records.</p>
+        </div>
+    </div>
+</div>

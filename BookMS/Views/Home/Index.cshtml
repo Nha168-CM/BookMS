@@ -1,0 +1,141 @@
+@model DashboardViewModel
+@{ ViewData["Title"] = "Dashboard"; }
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Dashboard</div>
+        <div class="page-subtitle">Welcome back! Here's what's happening today.</div>
+    </div>
+    <a asp-controller="Orders" asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-2"></i>New Sale
+    </a>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="bi bi-journal-bookmark-fill"></i></div>
+            <div>
+                <div class="stat-value">@Model.TotalBooks</div>
+                <div class="stat-label">Total Books</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-cart-check-fill"></i></div>
+            <div>
+                <div class="stat-value">@Model.TodayOrders</div>
+                <div class="stat-label">Today's Orders</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-currency-dollar"></i></div>
+            <div>
+                <div class="stat-value">$@Model.TodaySales.ToString("N2")</div>
+                <div class="stat-label">Today's Sales</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="bi bi-graph-up-arrow"></i></div>
+            <div>
+                <div class="stat-value">$@Model.MonthlySales.ToString("N2")</div>
+                <div class="stat-label">Monthly Sales</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Recent Orders -->
+    <div class="col-xl-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-receipt text-primary"></i> Recent Orders
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Cashier</th>
+                            <th>Total</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in Model.RecentOrders)
+                        {
+                            <tr>
+                                <td><strong>@order.OrderNumber</strong></td>
+                                <td>@(order.CustomerName ?? "Walk-in")</td>
+                                <td>@order.Cashier?.FullName</td>
+                                <td><strong>$@order.TotalAmount.ToString("N2")</strong></td>
+                                <td><span class="badge bg-light text-dark">@order.PaymentMethod</span></td>
+                                <td>
+                                    <span class="badge-status badge-@order.Status.ToString().ToLower()">@order.Status</span>
+                                </td>
+                                <td>
+                                    <a asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.RecentOrders.Any())
+                        {
+                            <tr><td colspan="7" class="text-center text-muted py-4">No orders yet today</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Alert -->
+    <div class="col-xl-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-exclamation-triangle text-warning"></i> Low Stock Alert
+                @if (Model.LowStockCount > 0)
+                {
+                    <span class="badge bg-danger ms-auto">@Model.LowStockCount</span>
+                }
+            </div>
+            <ul class="list-group list-group-flush">
+                @foreach (var book in Model.LowStockBooks)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold" style="font-size:0.875rem">@book.Title</div>
+                            <div class="text-muted" style="font-size:0.75rem">@book.Category?.Name</div>
+                        </div>
+                        <span class="stock-badge @(book.Stock == 0 ? "stock-empty" : "stock-low")">
+                            @book.Stock left
+                        </span>
+                    </li>
+                }
+                @if (!Model.LowStockBooks.Any())
+                {
+                    <li class="list-group-item text-center text-muted py-3">All stocks are sufficient</li>
+                }
+            </ul>
+            @if (Model.LowStockCount > 0)
+            {
+                <div class="p-3">
+                    <a asp-controller="Stock" asp-action="Create" class="btn btn-warning w-100 btn-sm">
+                        <i class="bi bi-box-arrow-in-down me-1"></i>Add Stock
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>

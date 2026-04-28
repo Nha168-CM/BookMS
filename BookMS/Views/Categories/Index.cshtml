@@ -1,0 +1,59 @@
+@model List<Category>
+@{ ViewData["Title"] = "Categories"; }
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Categories</div>
+        <div class="page-subtitle">Manage book categories</div>
+    </div>
+    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg me-2"></i>Add Category</a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Category Name</th>
+                    <th>Description</th>
+                    <th>Total Books</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cat in Model)
+                {
+                    <tr>
+                        <td><span class="badge bg-light text-dark">@cat.Id</span></td>
+                        <td><strong>@cat.Name</strong></td>
+                        <td class="text-muted">@(cat.Description ?? "-")</td>
+                        <td><span class="badge bg-primary">@cat.Books.Count books</span></td>
+                        <td class="text-muted">@cat.CreatedAt.ToString("dd MMM yyyy")</td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a asp-action="Edit" asp-route-id="@cat.Id" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil me-1"></i>Edit
+                                </a>
+                                <form asp-action="Delete" asp-route-id="@cat.Id" method="post"
+                                      onsubmit="return confirm('Delete @cat.Name?')">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            @(cat.Books.Any() ? "disabled" : "")
+                                            title="@(cat.Books.Any() ? "Has books, cannot delete" : "Delete")">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-5">No categories found.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,236 @@
+@model BookMS.Models.Book
+@{ ViewData["Title"] = Model.Title; Layout = "_LayoutCustomer"; }
+
+<div class="container py-5">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index">Shop</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index" asp-route-categoryId="@Model.CategoryId">@Model.Category?.Name</a></li>
+            <li class="breadcrumb-item active">@Model.Title</li>
+        </ol>
+    </nav>
+
+    <div class="row g-5">
+        <!-- Book Cover -->
+        <div class="col-lg-4">
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" class="img-fluid rounded-3 shadow w-100"
+                     style="max-height:420px;object-fit:cover" alt="@Model.Title" />
+            }
+            else
+            {
+                <div class="rounded-3 shadow d-flex align-items-center justify-content-center"
+                     style="height:380px;background:linear-gradient(135deg,#667eea,#764ba2);color:rgba(255,255,255,0.6);font-size:6rem">
+                    <i class="bi bi-book"></i>
+                </div>
+            }
+        </div>
+
+        <!-- Book Info -->
+        <div class="col-lg-5">
+            <span class="badge bg-primary mb-2">@Model.Category?.Name</span>
+            <h1 class="fw-bold mb-2" style="font-size:1.9rem">@Model.Title</h1>
+            <p class="text-muted mb-1"><i class="bi bi-person me-2"></i>by <strong>@Model.Author</strong></p>
+            <p class="text-muted mb-3" style="font-size:0.875rem"><i class="bi bi-upc me-2"></i>ISBN: <code>@Model.ISBN</code></p>
+
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <span style="font-size:2rem;font-weight:800;color:#4f46e5">$@Model.Price.ToString("N2")</span>
+                <span class="badge @(Model.Stock == 0 ? "bg-danger" : Model.Stock <= 5 ? "bg-warning text-dark" : "bg-success") fs-6">
+                    @(Model.Stock == 0 ? "Out of Stock" : Model.Stock <= 5 ? $"Only {Model.Stock} left!" : $"{Model.Stock} In Stock")
+                </span>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Description))
+            {
+                <p class="text-muted mb-4" style="line-height:1.7">@Model.Description</p>
+            }
+
+            @if (Model.Stock > 0)
+            {
+                @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Customer"))
+                {
+                    <form asp-controller="Cart" asp-action="Add" method="post" class="d-flex gap-3 align-items-center">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="bookId" value="@Model.Id" />
+                        <div class="d-flex align-items-center border rounded-3" style="overflow:hidden">
+                            <button type="button" class="btn px-3 py-2 border-0" onclick="changeQty(-1)">−</button>
+                            <input type="number" name="qty" id="qtyInput" value="1" min="1" max="@Model.Stock"
+                                   class="form-control border-0 text-center" style="width:60px" />
+                            <button type="button" class="btn px-3 py-2 border-0" onclick="changeQty(1)">+</button>
+                        </div>
+                        <button type="submit" class="btn btn-primary px-5 py-2 fw-bold">
+                            <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                        </button>
+                    </form>
+                    <a asp-controller="Cart" asp-action="Index" class="btn btn-outline-primary mt-3 px-4">
+                        <i class="bi bi-cart3 me-2"></i>View Cart
+                    </a>
+                }
+                else if (!User.Identity?.IsAuthenticated ?? true)
+                {
+                    <div class="d-flex gap-3 align-items-center">
+                        <div class="d-flex align-items-center border rounded-3" style="overflow:hidden">
+                            <button type="button" class="btn px-3 py-2 border-0" onclick="changeQty(-1)">−</button>
+                            <input type="number" name="qty" id="qtyInput" value="1" min="1" max="@Model.Stock"
+                                   class="form-control border-0 text-center" style="width:60px" />
+                            <button type="button" class="btn px-3 py-2 border-0" onclick="changeQty(1)">+</button>
+                        </div>
+                        <button type="button" class="btn btn-primary px-5 py-2 fw-bold"
+                                onclick="showAuthModal(@Model.Id, &quot;@Model.Title&quot;)">
+                            <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                        </button>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-danger"><i class="bi bi-x-circle me-2"></i>This book is currently out of stock.</div>
+            }
+        </div>
+
+        <!-- Side Info Card -->
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3">Book Details</h6>
+                    <dl class="row mb-0" style="font-size:0.875rem">
+                        <dt class="col-5 text-muted">Title</dt>
+                        <dd class="col-7">@Model.Title</dd>
+                        <dt class="col-5 text-muted">Author</dt>
+                        <dd class="col-7">@Model.Author</dd>
+                        <dt class="col-5 text-muted">Category</dt>
+                        <dd class="col-7">@Model.Category?.Name</dd>
+                        <dt class="col-5 text-muted">ISBN</dt>
+                        <dd class="col-7"><code style="font-size:0.78rem">@Model.ISBN</code></dd>
+                        <dt class="col-5 text-muted">Price</dt>
+                        <dd class="col-7 fw-bold text-primary">$@Model.Price.ToString("N2")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Books -->
+    @if ((ViewBag.Related as List<BookMS.Models.Book>)?.Any() == true)
+    {
+        <div class="mt-5">
+            <h4 class="fw-bold mb-4">Related Books</h4>
+            <div class="row g-3">
+                @foreach (var b in ViewBag.Related as List<BookMS.Models.Book>)
+                {
+                    <div class="col-lg-3 col-md-6">
+                        <div class="book-card">
+                            <a asp-controller="Shop" asp-action="Details" asp-route-id="@b.Id">
+                                @if (!string.IsNullOrEmpty(b.ImageUrl))
+                                { <img src="@b.ImageUrl" class="book-cover" alt="@b.Title" /> }
+                                else
+                                { <div class="book-cover-placeholder"><i class="bi bi-book"></i></div> }
+                            </a>
+                            <div class="p-3">
+                                <div class="fw-bold text-truncate mb-1" style="font-size:0.9rem">@b.Title</div>
+                                <div class="text-muted mb-2" style="font-size:0.8rem">@b.Author</div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="book-price">$@b.Price.ToString("N2")</span>
+                                    <a asp-controller="Shop" asp-action="Details" asp-route-id="@b.Id"
+                                       class="btn btn-sm btn-outline-primary">View</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Auth Modal for Guest -->
+<div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pb-4 pt-2">
+                <div class="text-center mb-4">
+                    <div style="width:52px;height:52px;border-radius:14px;background:#4f46e5;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+                        <i class="bi bi-cart-plus text-white fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-1">Add to Cart</h5>
+                    <p class="text-muted mb-0" style="font-size:0.875rem">Sign in or register to add this book to your cart</p>
+                </div>
+                <ul class="nav nav-pills mb-4 gap-2" id="authTabs">
+                    <li class="nav-item flex-fill">
+                        <button class="nav-link active w-100 fw-semibold" onclick="switchTab('loginTab ','registerTab ',this,document.getElementById('regTabBtn '))">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+                        </button>
+                    </li>
+                    <li class="nav-item flex-fill">
+                        <button id="regTabBtn" class="nav-link w-100 fw-semibold" onclick="switchTab('registerTab ','loginTab ',this,document.querySelector('#authTabs .nav-link.active '))">
+                            <i class="bi bi-person-plus me-1"></i>Register
+                        </button>
+                    </li>
+                </ul>
+                <div id="loginTab">
+                    <form method="post" asp-controller="Auth" asp-action="Login">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="returnUrl" value="/CustomerOrder/Checkout" />
+                        <div class="mb-3"><input type="text" name="EmailOrPhone" class="form-control" placeholder="Email or Phone Number" required /></div>
+                        <div class="input-group mb-3">
+                            <input type="password" id="mPwd" name="Password" class="form-control border-end-0" placeholder="Password" required />
+                            <button type="button" class="input-group-text bg-white border-start-0" onclick="tPwd('mPwd ','mEye ')"><i id="mEye" class="bi bi-eye" style="color:#94a3b8"></i></button>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold"><i class="bi bi-box-arrow-in-right me-2"></i>Sign In & Add to Cart</button>
+                    </form>
+                </div>
+                <div id="registerTab" class="d-none">
+                    <form method="post" asp-controller="Auth" asp-action="Register">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="returnUrl" value="/CustomerOrder/Checkout" />
+                        <div class="mb-2"><input type="text" name="FullName" class="form-control" placeholder="Full Name" required /></div>
+                        <div class="mb-2"><input type="email" name="Email" class="form-control" placeholder="Email (optional)" /></div>
+                        <div class="mb-2"><input type="tel" name="Phone" class="form-control" placeholder="Phone (optional)" /></div>
+                        <div class="input-group mb-2">
+                            <input type="password" id="mRPwd" name="Password" class="form-control border-end-0" placeholder="Password (min 6)" required />
+                            <button type="button" class="input-group-text bg-white border-start-0" onclick="tPwd('mRPwd ','mREye ')"><i id="mREye" class="bi bi-eye" style="color:#94a3b8"></i></button>
+                        </div>
+                        <div class="input-group mb-3">
+                            <input type="password" id="mCPwd" name="ConfirmPassword" class="form-control border-end-0" placeholder="Confirm Password" required />
+                            <button type="button" class="input-group-text bg-white border-start-0" onclick="tPwd('mCPwd ','mCEye ')"><i id="mCEye" class="bi bi-eye" style="color:#94a3b8"></i></button>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold"><i class="bi bi-person-plus me-2"></i>Register & Add to Cart</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+var authModal;
+document.addEventListener("DOMContentLoaded", function() {
+    authModal = new bootstrap.Modal(document.getElementById("authModal"));
+});
+function showAuthModal(bookId, bookTitle) { authModal.show(); }
+function switchTab(showId, hideId, a, b) {
+    document.getElementById(showId).classList.remove("d-none");
+    document.getElementById(hideId).classList.add("d-none");
+    a.classList.add("active"); b.classList.remove("active");
+}
+function tPwd(inputId, iconId) {
+    const inp = document.getElementById(inputId), icon = document.getElementById(iconId);
+    if (inp.type === "password") { inp.type = "text"; icon.className = "bi bi-eye-slash"; }
+    else { inp.type = "password"; icon.className = "bi bi-eye"; }
+}
+function changeQty(delta) {
+    const inp = document.getElementById("qtyInput");
+    const max = parseInt(inp.max);
+    let val = parseInt(inp.value) + delta;
+    if (val < 1) val = 1;
+    if (val > max) val = max;
+    inp.value = val;
+}
+</script>
+}

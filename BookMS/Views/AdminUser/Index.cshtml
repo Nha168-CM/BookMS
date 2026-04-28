@@ -1,0 +1,254 @@
+@using BookMS.Controllers
+@using BookMS.Models
+@model List<UserWithRoleViewModel>
+@{
+    ViewData["Title"] = "Manage Clients"; bool isSuperAdmin = (bool)(ViewBag.IsSuperAdmin ?? false);
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Manage Clients</div>
+        <div class="page-subtitle">
+            @if (isSuperAdmin)
+            {
+                <span class="badge" style="background:#7c3aed">👑 SuperAdmin — Full Access</span>
+            }
+            else
+            {
+
+                <span class="badge bg-primary">🔑 Admin — Manage Staff & Customers</span>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+    @{
+        var statsRows = isSuperAdmin
+        ? new[] {
+        ("SuperAdmin", "bi-shield-star",  "#7c3aed", AppRoles.SuperAdmin),
+        ("Admin",      "bi-shield-fill",  "#4f46e5", AppRoles.Admin),
+        ("Staff",      "bi-person-badge", "#0ea5e9", AppRoles.Staff),
+        ("Customer",   "bi-people-fill",  "#10b981", AppRoles.Customer)
+        }
+        : new[] {
+        ("Admin",      "bi-shield-fill",  "#4f46e5", AppRoles.Admin),
+        ("Staff",      "bi-person-badge", "#0ea5e9", AppRoles.Staff),
+        ("Customer",   "bi-people-fill",  "#10b981", AppRoles.Customer)
+        };
+    }
+    @foreach (var (label, icon, color, key) in statsRows)
+    {
+        var cnt = Model.Count(u => u.Roles.Contains(key));
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div style="width:44px;height:44px;border-radius:12px;background:@color+22;display:flex;align-items:center;justify-content:center">
+                        <i class="bi @icon" style="color:@color;font-size:1.2rem"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:1.5rem;font-weight:800;color:@color">@cnt</div>
+                        <div class="text-muted" style="font-size:0.78rem">@label Users</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Filter Bar -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="Name or email..." />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Filter by Role</label>
+                <select name="role" class="form-select">
+                    <option value="">All Roles</option>
+                    @if (isSuperAdmin)
+                    {
+                        <option value="SuperAdmin" selected="@(ViewBag.RoleFilter == "SuperAdmin" ? "selected" : null)">👑 SuperAdmin</option>
+                    }
+                    <option value="Admin" selected="@(ViewBag.RoleFilter == "Admin" ? "selected" : null)">🛡️ Admin</option>
+                    <option value="Staff" selected="@(ViewBag.RoleFilter == "Staff" ? "selected" : null)">🧑‍💼 Staff</option>
+                    <option value="Customer" selected="@(ViewBag.RoleFilter == "Customer" ? "selected" : null)">👤 Customer</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-fill"><i class="bi bi-search me-1"></i>Search</button>
+                <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email / Phone</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Loyalty Pts</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var vm in Model)
+                {
+                    var role = vm.Roles.FirstOrDefault() ?? "—";
+                    var isSA = vm.Roles.Contains(AppRoles.SuperAdmin);
+                    var isAdmin = vm.Roles.Contains(AppRoles.Admin);
+                    bool canEdit = isSuperAdmin || (!isSA && !isAdmin);
+
+                    // avatar color
+                    var avatarColor = role switch
+                    {
+                        AppRoles.SuperAdmin => "#7c3aed",
+                        AppRoles.Admin => "#4f46e5",
+                        AppRoles.Staff => "#0ea5e9",
+                        _ => "#10b981"
+                    };
+
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                @if (!string.IsNullOrEmpty(vm.User.ProfileImage))
+                                {
+                                    <img src="@vm.User.ProfileImage" style="width:38px;height:38px;border-radius:50%;object-fit:cover" />
+                                }
+                                else
+                                {
+                                    <div style="width:38px;height:38px;border-radius:50%;background:@avatarColor;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:0.9rem">
+                                        @vm.User.FullName.Substring(0, 1).ToUpper()
+                                    </div>
+                                }
+                                <div>
+                                    <div class="fw-semibold" style="font-size:0.875rem">@vm.User.FullName</div>
+                                    <div class="text-muted" style="font-size:0.75rem">ID: @vm.User.Id.Substring(0, Math.Min(12, vm.User.Id.Length))...</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="font-size:0.85rem">
+                            <div>@vm.User.Email</div>
+                            @if (!string.IsNullOrEmpty(vm.User.PhoneNumber))
+                            {
+                                <div class="text-muted"><i class="bi bi-telephone me-1"></i>@vm.User.PhoneNumber</div>
+                            }
+                        </td>
+                        <td>
+                            @{
+                                var (roleBg, roleIcon) = role switch
+                                {
+                                    AppRoles.SuperAdmin => ("#7c3aed", "bi-shield-star"),
+                                    AppRoles.Admin => ("#4f46e5", "bi-shield-fill"),
+                                    AppRoles.Staff => ("#0ea5e9", "bi-person-badge"),
+                                    _ => ("#10b981", "bi-people")
+                                };
+                            }
+                            <span class="badge" style="background:@roleBg;font-size:0.75rem;padding:5px 10px">
+                                <i class="bi @roleIcon me-1"></i>@role
+                            </span>
+                        </td>
+                        <td>
+                            @if (vm.User.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+
+                                <span class="badge bg-secondary">Disabled</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="badge bg-warning text-dark"><i class="bi bi-star-fill me-1"></i>@vm.User.LoyaltyPoints.ToString("N2")</span>
+                        </td>
+                        <td style="font-size:0.8rem;color:#64748b">@vm.User.CreatedAt.ToString("dd MMM yyyy")</td>
+                        <td>
+                            @if (canEdit)
+                            {
+                                <div class="d-flex gap-1">
+                                    <!-- Change Role Dropdown -->
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" style="font-size:0.78rem">
+                                            Role
+                                        </button>
+                                        <ul class="dropdown-menu shadow">
+                                            @if (isSuperAdmin)
+                                            {
+                                                <li>
+                                                    <form asp-action="ChangeRole" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="userId" value="@vm.User.Id" />
+                                                        <input type="hidden" name="newRole" value="Admin" />
+                                                        <button type="submit" class="dropdown-item"><i class="bi bi-shield-fill me-2 text-primary"></i>Admin</button>
+                                                    </form>
+                                                </li>
+                                            }
+                                            <li>
+                                                <form asp-action="ChangeRole" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="userId" value="@vm.User.Id" />
+                                                    <input type="hidden" name="newRole" value="Staff" />
+                                                    <button type="submit" class="dropdown-item"><i class="bi bi-person-badge me-2 text-info"></i>Staff</button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form asp-action="ChangeRole" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="userId" value="@vm.User.Id" />
+                                                    <input type="hidden" name="newRole" value="Customer" />
+                                                    <button type="submit" class="dropdown-item"><i class="bi bi-people me-2 text-success"></i>Customer</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <!-- Toggle Status -->
+                                    <form asp-action="ToggleStatus" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@vm.User.Id" />
+                                        <button type="submit" class="btn btn-sm @(vm.User.IsActive ? "btn-outline-warning" : "btn-outline-success")"
+                                                title="@(vm.User.IsActive ? "Disable" : "Enable")" style="font-size:0.78rem">
+                                            <i class="bi @(vm.User.IsActive ? "bi-lock" : "bi-unlock")"></i>
+                                        </button>
+                                    </form>
+
+                                    <!-- Delete -->
+                                    <form asp-action="Delete" method="post"
+                                          onsubmit="return confirm('Delete @vm.User.FullName? This cannot be undone.')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@vm.User.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:0.78rem">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted small"><i class="bi bi-lock-fill me-1"></i>Protected</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-people fs-1"></i>
+            <p class="mt-2">No users found</p>
+        </div>
+    }
+</div>

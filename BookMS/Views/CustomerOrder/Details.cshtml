@@ -1,0 +1,115 @@
+@model BookMS.Models.Order
+@using BookMS.Models
+@{ ViewData["Title"] = "Order Details"; Layout = "_LayoutCustomer"; }
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0">Order Details</h3>
+            <p class="text-muted mb-0">@Model.OrderNumber</p>
+        </div>
+        <a asp-controller="CustomerOrder" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>My Orders
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <!-- Status Banner -->
+            <div class="alert @(Model.Status == OrderStatus.Completed ? "alert-success" : Model.Status == OrderStatus.Pending ? "alert-warning" : "alert-danger") rounded-3 mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi @(Model.Status == OrderStatus.Completed ? "bi-check-circle-fill" : Model.Status == OrderStatus.Pending ? "bi-clock-fill" : "bi-x-circle-fill") fs-3"></i>
+                    <div>
+                        <div class="fw-bold fs-6">Order @Model.Status</div>
+                        <div style="font-size:0.875rem">
+                            @(Model.Status == OrderStatus.Pending ? "Your order is being processed. Please wait for confirmation." :
+                              Model.Status == OrderStatus.Completed ? "Your order has been completed successfully!" :
+                              "This order has been cancelled.")
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">Order Items</h5>
+                    @foreach (var d in Model.OrderDetails)
+                    {
+                        <div class="d-flex align-items-center gap-3 py-3 border-bottom">
+                            <div style="width:60px;height:75px;border-radius:8px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:1.5rem;flex-shrink:0">
+                                <i class="bi bi-book"></i>
+                            </div>
+                            <div class="flex-fill">
+                                <div class="fw-bold">@d.Book?.Title</div>
+                                <div class="text-muted" style="font-size:0.85rem">by @d.Book?.Author</div>
+                                <div class="text-muted" style="font-size:0.8rem">Qty: @d.Quantity × $@d.UnitPrice.ToString("N2")</div>
+                            </div>
+                            <div class="fw-bold text-primary">$@((d.UnitPrice * d.Quantity).ToString("N2"))</div>
+                        </div>
+                    }
+                    <!-- Totals -->
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Subtotal</span>
+                            <span>$@Model.SubTotal.ToString("N2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Shipping</span>
+                            <span class="text-success">FREE</span>
+                        </div>
+                        <hr />
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold fs-6">Total</span>
+                            <span class="fw-bold fs-5 text-primary">$@Model.TotalAmount.ToString("N2")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Order Info -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3">Order Information</h6>
+                    <dl class="row mb-0" style="font-size:0.875rem">
+                        <dt class="col-5 text-muted">Order #</dt>
+                        <dd class="col-7 fw-semibold">@Model.OrderNumber</dd>
+                        <dt class="col-5 text-muted">Date</dt>
+                        <dd class="col-7">@Model.OrderDate.ToString("dd MMM yyyy HH:mm")</dd>
+                        <dt class="col-5 text-muted">Payment</dt>
+                        <dd class="col-7">
+                            <span class="badge bg-light text-dark">
+                                <i class="bi @(Model.PaymentMethod == PaymentMethod.Cash ? "bi-cash" : Model.PaymentMethod == PaymentMethod.Card ? "bi-credit-card" : "bi-qr-code") me-1"></i>
+                                @Model.PaymentMethod
+                            </span>
+                        </dd>
+                        <dt class="col-5 text-muted">Status</dt>
+                        <dd class="col-7"><span class="status-@Model.Status.ToString().ToLower()">@Model.Status</span></dd>
+                        @if (!string.IsNullOrEmpty(Model.Notes))
+                        {
+                            <dt class="col-5 text-muted">Notes</dt>
+                            <dd class="col-7">@Model.Notes</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Loyalty Points -->
+            <div class="loyalty-card mb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-star-fill fs-2"></i>
+                    <div>
+                        <div class="fw-bold">Points Earned</div>
+                        <div style="font-size:1.5rem;font-weight:800">+@Math.Floor(Model.TotalAmount) pts</div>
+                    </div>
+                </div>
+            </div>
+
+            <a asp-controller="Shop" asp-action="Index" class="btn btn-primary w-100">
+                <i class="bi bi-shop me-2"></i>Continue Shopping
+            </a>
+        </div>
+    </div>
+</div>

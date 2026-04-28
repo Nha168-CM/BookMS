@@ -1,0 +1,96 @@
+@model List<Book>
+@{ ViewData["Title"] = "Books"; }
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Books</div>
+        <div class="page-subtitle">Manage your book catalog</div>
+    </div>
+    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg me-2"></i>Add Book</a>
+</div>
+
+<!-- Search & Filter -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="Title, Author, ISBN..." />
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Category</label>
+                <select name="categoryId" asp-items="ViewBag.Categories" class="form-select">
+                    <option value="">All Categories</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-fill"><i class="bi bi-search me-1"></i>Search</button>
+                <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Book Grid -->
+@if (Model.Any())
+{
+    <div class="row g-4">
+        @foreach (var book in Model)
+        {
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="book-card">
+                    @if (!string.IsNullOrEmpty(book.ImageUrl))
+                    {
+                        <img src="@book.ImageUrl" class="book-img" alt="@book.Title" />
+                    }
+                    else
+                    {
+                        <div class="book-img-placeholder"><i class="bi bi-book"></i></div>
+                    }
+                    <div class="book-card-body d-flex flex-column" style="flex:1">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="badge bg-light text-primary" style="font-size:0.7rem">@book.Category?.Name</span>
+                            <span class="stock-badge @(book.Stock == 0 ? "stock-empty" : book.Stock <= 5 ? "stock-low" : "stock-ok")">
+                                @book.Stock in stock
+                            </span>
+                        </div>
+                        @{
+                            var adminTitle = book.Title ?? "";
+                            var adminTitleShort = adminTitle.Length > 45 ? adminTitle.Substring(0, 45) + "..." : adminTitle;
+                            var adminAuthor = book.Author ?? "";
+                            var adminAuthorShort = adminAuthor.Length > 30 ? adminAuthor.Substring(0, 30) + "..." : adminAuthor;
+                        }
+                        <div class="book-title mt-2" title="@adminTitle" style="min-height:2.6em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">@adminTitle</div>
+                        <div class="book-author mb-2" title="@adminAuthor" style="height:1.3em;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">by @adminAuthorShort</div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="book-price">$@book.Price.ToString("N2")</div>
+                            <small class="text-muted">ISBN: @book.ISBN</small>
+                        </div>
+                        <div class="d-flex gap-2 mt-auto">
+                            <a asp-action="Edit" asp-route-id="@book.Id" class="btn btn-sm btn-outline-primary flex-fill">
+                                <i class="bi bi-pencil me-1"></i>Edit
+                            </a>
+                            <a asp-action="Details" asp-route-id="@book.Id" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <form asp-action="Delete" asp-route-id="@book.Id" method="post" onsubmit="return confirm('Delete this book?')">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="text-center py-5">
+        <i class="bi bi-journal-x text-muted" style="font-size:4rem"></i>
+        <p class="text-muted mt-3">No books found. <a asp-action="Create">Add one now</a></p>
+    </div>
+}
