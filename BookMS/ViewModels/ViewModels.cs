@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using BookMS.Models;
-
 namespace BookMS.ViewModels
 {
     // Auth ViewModels
@@ -11,17 +10,14 @@ namespace BookMS.ViewModels
         [Required][DataType(DataType.Password)] public string Password { get; set; } = string.Empty;
         public bool RememberMe { get; set; }
     }
-
     public class RegisterViewModel
     {
         [Required] public string FullName { get; set; } = string.Empty;
-        // Email or Phone — at least one required (validated in controller)
         [EmailAddress] public string? Email { get; set; }
         [Phone] public string? Phone { get; set; }
         [Required][DataType(DataType.Password)][MinLength(6)] public string Password { get; set; } = string.Empty;
         [Compare("Password")] public string ConfirmPassword { get; set; } = string.Empty;
     }
-
     // Book ViewModels
     public class BookViewModel
     {
@@ -33,11 +29,13 @@ namespace BookMS.ViewModels
         [Required][Range(0, double.MaxValue)] public decimal Price { get; set; }
         [Required][Range(0, int.MaxValue)] public int Stock { get; set; }
         public string? ImageUrl { get; set; }
-        [Required] public int CategoryId { get; set; }
+        // Primary category (first selected, for backward-compat with Book.CategoryId)
+        public int CategoryId { get; set; }
+        // Multi-category selection from form
+        public List<int> CategoryIds { get; set; } = new();
         public IFormFile? ImageFile { get; set; }
         public List<Category> Categories { get; set; } = new();
     }
-
     // Order ViewModels
     public class OrderCreateViewModel
     {
@@ -49,7 +47,6 @@ namespace BookMS.ViewModels
         public string? Notes { get; set; }
         public List<OrderItemViewModel> Items { get; set; } = new();
     }
-
     public class OrderItemViewModel
     {
         public int BookId { get; set; }
@@ -57,7 +54,6 @@ namespace BookMS.ViewModels
         public decimal UnitPrice { get; set; }
         public decimal Discount { get; set; }
     }
-
     // Stock ViewModels
     public class StockTransactionViewModel
     {
@@ -68,7 +64,6 @@ namespace BookMS.ViewModels
         public string? Notes { get; set; }
         public List<Book> Books { get; set; } = new();
     }
-
     // Dashboard ViewModel
     public class DashboardViewModel
     {

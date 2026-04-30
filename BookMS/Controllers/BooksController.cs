@@ -50,6 +50,15 @@ namespace BookMS.Controllers
         public async Task<IActionResult> Create(BookViewModel vm)
         {
             ModelState.Remove("ImageUrl");
+            ModelState.Remove("CategoryId");
+
+            // Resolve CategoryId from multi-select (first selected = primary)
+            if (vm.CategoryIds != null && vm.CategoryIds.Count > 0)
+                vm.CategoryId = vm.CategoryIds[0];
+
+            if (vm.CategoryId == 0)
+                ModelState.AddModelError("CategoryIds", "Please select at least one category.");
+
             if (!ModelState.IsValid)
             {
                 vm.Categories = await _ctx.Categories.ToListAsync();
@@ -93,6 +102,7 @@ namespace BookMS.Controllers
                 Stock = book.Stock,
                 ImageUrl = book.ImageUrl,
                 CategoryId = book.CategoryId,
+                CategoryIds = new List<int> { book.CategoryId },
                 Categories = await _ctx.Categories.ToListAsync()
             };
             return View(vm);
@@ -105,6 +115,14 @@ namespace BookMS.Controllers
         public async Task<IActionResult> Edit(int id, BookViewModel vm)
         {
             ModelState.Remove("ImageUrl");
+            ModelState.Remove("CategoryId");
+
+            if (vm.CategoryIds != null && vm.CategoryIds.Count > 0)
+                vm.CategoryId = vm.CategoryIds[0];
+
+            if (vm.CategoryId == 0)
+                ModelState.AddModelError("CategoryIds", "Please select at least one category.");
+
             if (!ModelState.IsValid)
             {
                 vm.Categories = await _ctx.Categories.ToListAsync();
@@ -114,16 +132,19 @@ namespace BookMS.Controllers
             var book = await _bookService.GetByIdAsync(id);
             if (book == null) return NotFound();
 
-            book.Title = vm.Title; book.Author = vm.Author; book.ISBN = vm.ISBN;
-            book.Description = vm.Description; book.Price = vm.Price;
-            book.Stock = vm.Stock; book.CategoryId = vm.CategoryId;
+            book.Title = vm.Title;
+            book.Author = vm.Author;
+            book.ISBN = vm.ISBN;
+            book.Description = vm.Description;
+            book.Price = vm.Price;
+            book.Stock = vm.Stock;
+            book.CategoryId = vm.CategoryId;
 
             // Priority: new file upload > new URL > keep existing
             if (vm.ImageFile != null && vm.ImageFile.Length > 0)
                 book.ImageUrl = await SaveImageAsync(vm.ImageFile);
             else if (!string.IsNullOrWhiteSpace(vm.ImageUrl))
                 book.ImageUrl = vm.ImageUrl.Trim();
-            // else keep existing book.ImageUrl unchanged
 
             await _bookService.UpdateAsync(book);
             TempData["Success"] = "Book updated successfully!";
