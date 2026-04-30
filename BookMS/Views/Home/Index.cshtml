@@ -56,43 +56,34 @@
                 <i class="bi bi-receipt text-primary"></i> Recent Orders
             </div>
             <div class="table-responsive">
-                <table class="table mb-0" style="table-layout:fixed;width:100%">
-                    <colgroup>
-                        <col style="width:90px" />
-                        <col />
-                        <col />
-                        <col style="width:90px" />
-                        <col style="width:70px" />
-                        <col style="width:80px" />
-                        <col style="width:48px" />
-                    </colgroup>
+                <table class="table mb-0">
                     <thead>
                         <tr>
-                            <th>Order #</th>
+                            <th style="width:130px">Order #</th>
                             <th>Customer</th>
                             <th>Cashier</th>
-                            <th>Total</th>
-                            <th>Payment</th>
-                            <th>Status</th>
-                            <th></th>
+                            <th style="width:80px">Total</th>
+                            <th style="width:65px">Payment</th>
+                            <th style="width:85px">Status</th>
+                            <th style="width:44px"></th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var order in Model.RecentOrders)
                         {
                             <tr>
-                                <td class="text-truncate"><strong>@order.OrderNumber</strong></td>
-                                <td class="text-truncate">@(order.CustomerName ?? "Walk-in")</td>
-                                <td class="text-truncate">@order.Cashier?.FullName</td>
+                                <td class="text-truncate" style="max-width:130px"><strong>@order.OrderNumber</strong></td>
+                                <td class="text-truncate" style="max-width:100px">@(order.CustomerName ?? "Walk-in")</td>
+                                <td class="text-truncate" style="max-width:100px">@order.Cashier?.FullName</td>
                                 <td><strong>$@order.TotalAmount.ToString("N2")</strong></td>
-                                <td><span class="badge bg-light text-dark">@order.PaymentMethod</span></td>
+                                <td style="font-size:0.75rem">@order.PaymentMethod</td>
                                 <td>
-                                    <span class="badge-status badge-@order.Status.ToString().ToLower()">@order.Status</span>
+                                    <span class="badge-status badge-@order.Status.ToString().ToLower()" style="white-space:nowrap">@order.Status</span>
                                 </td>
-                                <td style="white-space:nowrap">
+                                <td>
                                     <a asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id"
-                                       class="btn btn-sm btn-outline-primary d-inline-flex align-items-center justify-content-center"
-                                       style="width:32px;height:32px;padding:0">
+                                       class="btn btn-sm btn-outline-primary"
+                                       style="width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                 </td>
