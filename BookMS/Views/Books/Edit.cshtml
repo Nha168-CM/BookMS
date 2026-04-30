@@ -23,13 +23,11 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Category <span class="text-danger">*</span></label>
-                            <select name="CategoryIds" class="form-select" multiple size="4" style="min-height:100px">
-                                @foreach (var cat in Model.Categories)
-                                {
-                                    <option value="@cat.Id">@cat.Name</option>
-                                }
+                            <select asp-for="CategoryId" class="form-select"
+                                    asp-items="@(new SelectList(Model.Categories, "Id", "Name"))">
+                                <option value="">-- Select --</option>
                             </select>
-                            <div class="form-text">Hold Ctrl/Cmd to select multiple</div>
+                            <span asp-validation-for="CategoryId" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6">
                             <label asp-for="Author" class="form-label">Author</label>
