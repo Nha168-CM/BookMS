@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BookMS.Controllers
 {
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,SuperAdmin")]
     public class BooksController : Controller
     {
         private readonly IBookService _bookService;
@@ -43,9 +43,13 @@ namespace BookMS.Controllers
             return View(vm);
         }
 
-        [HttpPost] [ValidateAntiForgeryToken]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequestSizeLimit(10 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]
         public async Task<IActionResult> Create(BookViewModel vm)
         {
+            ModelState.Remove("ImageUrl");
             if (!ModelState.IsValid)
             {
                 vm.Categories = await _ctx.Categories.ToListAsync();
@@ -54,13 +58,20 @@ namespace BookMS.Controllers
 
             var book = new Book
             {
-                Title = vm.Title, Author = vm.Author, ISBN = vm.ISBN,
-                Description = vm.Description, Price = vm.Price,
-                Stock = vm.Stock, CategoryId = vm.CategoryId
+                Title = vm.Title,
+                Author = vm.Author,
+                ISBN = vm.ISBN,
+                Description = vm.Description,
+                Price = vm.Price,
+                Stock = vm.Stock,
+                CategoryId = vm.CategoryId
             };
 
+            // Priority: File upload > URL input
             if (vm.ImageFile != null && vm.ImageFile.Length > 0)
                 book.ImageUrl = await SaveImageAsync(vm.ImageFile);
+            else if (!string.IsNullOrWhiteSpace(vm.ImageUrl))
+                book.ImageUrl = vm.ImageUrl.Trim();
 
             await _bookService.CreateAsync(book);
             TempData["Success"] = "Book created successfully!";
@@ -73,17 +84,27 @@ namespace BookMS.Controllers
             if (book == null) return NotFound();
             var vm = new BookViewModel
             {
-                Id = book.Id, Title = book.Title, Author = book.Author, ISBN = book.ISBN,
-                Description = book.Description, Price = book.Price, Stock = book.Stock,
-                ImageUrl = book.ImageUrl, CategoryId = book.CategoryId,
+                Id = book.Id,
+                Title = book.Title,
+                Author = book.Author,
+                ISBN = book.ISBN,
+                Description = book.Description,
+                Price = book.Price,
+                Stock = book.Stock,
+                ImageUrl = book.ImageUrl,
+                CategoryId = book.CategoryId,
                 Categories = await _ctx.Categories.ToListAsync()
             };
             return View(vm);
         }
 
-        [HttpPost] [ValidateAntiForgeryToken]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequestSizeLimit(10 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]
         public async Task<IActionResult> Edit(int id, BookViewModel vm)
         {
+            ModelState.Remove("ImageUrl");
             if (!ModelState.IsValid)
             {
                 vm.Categories = await _ctx.Categories.ToListAsync();
@@ -97,15 +118,20 @@ namespace BookMS.Controllers
             book.Description = vm.Description; book.Price = vm.Price;
             book.Stock = vm.Stock; book.CategoryId = vm.CategoryId;
 
+            // Priority: new file upload > new URL > keep existing
             if (vm.ImageFile != null && vm.ImageFile.Length > 0)
                 book.ImageUrl = await SaveImageAsync(vm.ImageFile);
+            else if (!string.IsNullOrWhiteSpace(vm.ImageUrl))
+                book.ImageUrl = vm.ImageUrl.Trim();
+            // else keep existing book.ImageUrl unchanged
 
             await _bookService.UpdateAsync(book);
             TempData["Success"] = "Book updated successfully!";
             return RedirectToAction(nameof(Index));
         }
 
-        [HttpPost] [ValidateAntiForgeryToken]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             await _bookService.DeleteAsync(id);
